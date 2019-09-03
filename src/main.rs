@@ -24,34 +24,34 @@ const GAS_CONSTANT: f64 = 287.00;
 const ISA_TEMP: Temperature = 288.15;
 const ISA_PRESSURE: Pressure = 101325.0;
 
-struct ProfilePart {
+struct ProfileSegment {
     bottom: u32,
     top: u32,
     lapse_rate: f64,
 }
 
-const PROFILES: &[ProfilePart] = &[
-    ProfilePart {
+const SEGMENTS: &[ProfileSegment] = &[
+    ProfileSegment {
         bottom: 0,
         top: 11000,
         lapse_rate: -0.0065,
     },
-    ProfilePart {
+    ProfileSegment {
         bottom: 11000,
         top: 20000,
         lapse_rate: 0.0,
     },
-    ProfilePart {
+    ProfileSegment {
         bottom: 20000,
         top: 32000,
         lapse_rate: 0.001,
     },
-    ProfilePart {
+    ProfileSegment {
         bottom: 32000,
         top: 47000,
         lapse_rate: 0.0028,
     },
-    ProfilePart {
+    ProfileSegment {
         bottom: 47000,
         top: 50000,
         lapse_rate: 0.0,
@@ -69,18 +69,18 @@ fn compute(altitude: u32) -> Parameters {
     let mut temperature = ISA_TEMP;
     let mut pressure = ISA_PRESSURE;
 
-    for profile in PROFILES {
-        let height_diff = altitude.min(profile.top) - profile.bottom;
+    for segment in SEGMENTS {
+        let height_diff = altitude.min(segment.top) - segment.bottom;
 
-        pressure = if profile.lapse_rate == 0.0 {
-            compute_pressure_isothermal(temperature, pressure, profile, height_diff as f64)
+        pressure = if segment.lapse_rate == 0.0 {
+            compute_pressure_isothermal(temperature, pressure, segment, height_diff as f64)
         } else {
-            compute_pressure(temperature, pressure, profile, height_diff as f64)
+            compute_pressure(temperature, pressure, segment, height_diff as f64)
         };
 
-        temperature += temperature_diff(profile, height_diff as f64);
+        temperature += temperature_diff(segment, height_diff as f64);
 
-        if altitude <= profile.top {
+        if altitude <= segment.top {
             break;
         }
     }
@@ -92,27 +92,27 @@ fn compute(altitude: u32) -> Parameters {
     }
 }
 
-fn temperature_diff(profile: &ProfilePart, height_diff: f64) -> f64 {
-    profile.lapse_rate * height_diff
+fn temperature_diff(segment: &ProfileSegment, height_diff: f64) -> f64 {
+    segment.lapse_rate * height_diff
 }
 
 fn compute_pressure(
     previous_temp: f64,
     pressure: f64,
-    profile: &ProfilePart,
+    segment: &ProfileSegment,
     height_diff: f64,
 ) -> f64 {
-    let temp = temperature_diff(profile, height_diff) + previous_temp;
-    pressure * (temp / previous_temp).powf(-GRAVITY_CONSTANT / (profile.lapse_rate * GAS_CONSTANT))
+    let temp = temperature_diff(segment, height_diff) + previous_temp;
+    pressure * (temp / previous_temp).powf(-GRAVITY_CONSTANT / (segment.lapse_rate * GAS_CONSTANT))
 }
 
 fn compute_pressure_isothermal(
     previous_temp: f64,
     pressure: f64,
-    profile: &ProfilePart,
+    segment: &ProfileSegment,
     height_diff: f64,
 ) -> f64 {
-    let temp = temperature_diff(profile, height_diff) + previous_temp;
+    let temp = temperature_diff(segment, height_diff) + previous_temp;
     pressure * (-GRAVITY_CONSTANT / (temp * GAS_CONSTANT) * height_diff).exp()
 }
 
